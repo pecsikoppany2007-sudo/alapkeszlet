@@ -1,0 +1,181 @@
+// Minőségkapu, 1. rész: Playwright. Futtatás: npm run kapu   (Lighthouse: npm run lighthouse, mind: npm test)
+// Ellenőrzi minden oldalon, minden nyelven, 320–1920 px között:
+//  0 konzolhiba / JS-hiba / hibás kérés · nincs vízszintes görgetés · a címek kiférnek · nincs hiányzó fordítás
+//  · nincs láthatatlan réteg a linkek fölött · minden képnek van alt-ja és betöltődik · a menülinkek célja létezik
+//  · élő nyelvváltás = friss betöltés · az intro lefut és eltűnik · csökkentett mozgásnál minden látszik · érintőn nincs egyedi kurzor
+// Figyelmeztet (nem buktat): [kitöltendő] jelölés maradt, noindex van az oldalon.
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { serve } from './szerver.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'oldal.json'), 'utf8'));
+const rovid = cfg.rovid || 'oldal';
+const LANGS = cfg.nyelvek || ['hu'];
+const WIDTHS = (process.env.KAPU_SZELESSEG || '320,375,414,768,1024,1280,1440,1920').split(',').map(Number);
+const PAGES = fs.readdirSync(path.join(ROOT, 'site')).filter(f => f.endsWith('.html') && f !== '404.html');
+const exe = process.env.CHROME_PATH; // ha a gépen már van Chromium (pl. felhő-konténer), azt használja
+
+const fails = [], warns = [];
+const fail = (where, msg) => fails.push(`${where}: ${msg}`);
+const warn = (where, msg) => { if (!warns.includes(`${where}: ${msg}`)) warns.push(`${where}: ${msg}`); };
+
+const { srv, url } = await serve();
+const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+
+function watch(page, where) {
+  page.on('console', m => { if (m.type() === 'error') fail(where, 'konzolhiba: ' + m.text().slice(0, 200)); });
+  page.on('pageerror', e => fail(where, 'JS-hiba: ' + String(e.message).slice(0, 200)));
+  page.on('requestfailed', r => { if (r.url().startsWith(url) && !/aborted/i.test(r.failure()?.errorText || '')) fail(where, 'kérés elbukott: ' + r.url().replace(url, '')); });
+  page.on('response', r => { if (r.url().startsWith(url) && r.status() >= 400) fail(where, `HTTP ${r.status()}: ${r.url().replace(url, '')}`); });
+}
+
+async function ctx(opts = {}, { lang, skipIntro = true } = {}) {
+  const c = await browser.newContext({ viewport: { width: 1280, height: 800 }, ...opts });
+  await c.addInitScript(([k, l, s]) => {
+    try { if (l) localStorage.setItem(k + '-lang', l); if (s) sessionStorage.setItem(k + '-intro', '1'); } catch (e) {}
+  }, [rovid, lang, skipIntro]);
+  return c;
+}
+
+/* egy oldal, egy nyelv, egy szélesség */
+async function checkLayout(file, lang, w) {
+  const where = `${file} ${lang} ${w}px`;
+  const c = await ctx({ viewport: { width: w, height: w < 800 ? 780 : 900 }, ...(w < 800 ? { hasTouch: true, isMobile: true } : {}) }, { lang });
+  const page = await c.newPage(); watch(page, where);
+  await page.goto(`${url}/${file}`, { waitUntil: 'load' });
+  await page.waitForTimeout(700);
+  // telefonon a túl széles elem kitágítja a layout viewportot (innerWidth nő, az oldal kicsinyít), ezért a kért szélességhez mérünk
+  const r = await page.evaluate((W) => {
+    const out = {};
+    const de = document.documentElement;
+    out.overflow = Math.max(de.scrollWidth, innerWidth) - W;
+    out.wide = out.overflow > 0 ? [...document.querySelectorAll('body *')].filter(e => { const b = e.getBoundingClientRect(); return b.width > W + 1 && b.right > W + 1 && getComputedStyle(e).position !== 'fixed'; }).slice(0, 3).map(e => e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.split(' ')[0] : '')) : [];
+    out.lang = de.lang;
+    out.emptyI18n = [...document.querySelectorAll('[data-i18n]')].filter(e => !e.closest('[hidden]') && !e.textContent.trim()).map(e => e.getAttribute('data-i18n')).slice(0, 5);
+    out.cut = [...document.querySelectorAll('h1, h2, h3, .ln__i')].filter(e => e.offsetParent && !e.closest('[hidden]')).filter(e => {
+      const ws = e.querySelectorAll('.w'); if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== 'visible') return true;
+      const b = e.getBoundingClientRect(); return b.right > innerWidth + 1 || [...ws].some(x => x.getBoundingClientRect().right > innerWidth + 1);
+    }).map(e => e.textContent.trim().slice(0, 30)).slice(0, 3);
+    out.noAlt = [...document.querySelectorAll('img')].filter(i => !i.hasAttribute('alt')).map(i => i.getAttribute('src')).slice(0, 5);
+    out.broken = [...document.querySelectorAll('img')].filter(i => i.complete && i.naturalWidth === 0 && i.loading !== 'lazy').map(i => i.getAttribute('src')).slice(0, 5);
+    out.anchors = [...document.querySelectorAll('a[href^="#"]')].map(a => a.getAttribute('href')).filter(h => h.length > 1 && h !== '#top' && !document.getElementById(h.slice(1)));
+    out.todo = (document.body.innerText.match(/kitöltendő/g) || []).length;
+    out.noindex = !!document.querySelector('meta[name="robots"][content*="noindex"]');
+    return out;
+  }, w);
+  if (r.overflow > 0) fail(where, `vízszintes görgetés ${r.overflow}px (${r.wide.join(', ')})`);
+  if (r.lang !== lang) fail(where, `html lang = ${r.lang}, várt: ${lang}`);
+  if (r.emptyI18n.length) fail(where, 'hiányzó fordítás: ' + r.emptyI18n.join(', '));
+  if (r.cut.length) fail(where, 'cím nem fér ki: ' + r.cut.join(' | '));
+  if (r.noAlt.length) fail(where, 'kép alt nélkül: ' + r.noAlt.join(', '));
+  if (r.broken.length) fail(where, 'nem töltődő kép: ' + r.broken.join(', '));
+  if (r.anchors.length) fail(where, 'link cél nélkül: ' + r.anchors.join(', '));
+  if (r.todo) warn(file, `[kitöltendő] maradt (${r.todo}×)`);
+  if (r.noindex) warn(file, 'noindex (demó, élesítéskor: eszkozok/elesites.py)');
+  /* láthatatlan réteg: az első 3 látható tartalmi link közepén tényleg a link van? */
+  if (w === 1280 || w === 375 || w === 320) {
+    const links = await page.$$('main a[href], footer a[href]');
+    let n = 0;
+    for (const a of links) {
+      if (n >= 3) break;
+      if (!(await a.isVisible())) continue;
+      await a.scrollIntoViewIfNeeded(); await page.waitForTimeout(250);
+      const ok = await a.evaluate(el => { const b = el.getBoundingClientRect(); const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !hit || el === hit || el.contains(hit) || hit.contains(el); });
+      if (!ok) fail(where, 'egy réteg eltakarja a linket: ' + (await a.getAttribute('href')));
+      n++;
+    }
+  }
+  await c.close();
+}
+
+/* élő nyelvváltás = friss betöltés */
+async function checkLiveSwitch(file) {
+  if (LANGS.length < 2) return;
+  for (const l of LANGS.slice(1)) {
+    const where = `${file} nyelvváltás ${LANGS[0]}→${l}`;
+    const c1 = await ctx({}, { lang: LANGS[0] }); const p1 = await c1.newPage(); watch(p1, where);
+    await p1.goto(`${url}/${file}`, { waitUntil: 'load' }); await p1.waitForTimeout(500);
+    const btn = p1.locator(`[data-lang="${l}"], [data-l="${l}"]`).first();
+    if (!(await btn.count())) { await c1.close(); continue; }
+    try { await btn.click({ timeout: 3000 }); } catch (e) { fail(where, 'a nyelvgomb nem kattintható (valami eltakarja)'); await c1.close(); continue; }
+    await p1.waitForTimeout(600);
+    const live = await p1.evaluate(() => document.body.innerText.replace(/\d{1,2}:\d{2}/g, '').replace(/\s+/g, ' ').trim());
+    const c2 = await ctx({}, { lang: l }); const p2 = await c2.newPage(); watch(p2, where);
+    await p2.goto(`${url}/${file}`, { waitUntil: 'load' }); await p2.waitForTimeout(500);
+    const fresh = await p2.evaluate(() => document.body.innerText.replace(/\d{1,2}:\d{2}/g, '').replace(/\s+/g, ' ').trim());
+    if (live !== fresh) {
+      let i = 0; while (i < live.length && live[i] === fresh[i]) i++;
+      fail(where, `más, mint friss betöltésnél: „…${live.slice(Math.max(0, i - 20), i + 40)}” ≠ „…${fresh.slice(Math.max(0, i - 20), i + 40)}”`);
+    }
+    await c1.close(); await c2.close();
+  }
+}
+
+/* intro: lefut, eltűnik, utána minden kattintható; egérrel és érintővel */
+async function checkIntro() {
+  for (const [name, opts] of [['gép', {}], ['telefon', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
+    const where = `index.html intro ${name}`;
+    const c = await ctx(opts, { lang: LANGS[0], skipIntro: false }); const p = await c.newPage(); watch(p, where);
+    await p.goto(`${url}/index.html`, { waitUntil: 'load' });
+    const had = await p.evaluate(() => document.documentElement.classList.contains('intro-on'));
+    if (!had) { warn('index.html', 'nincs intro (vagy ki van kapcsolva)'); await c.close(); return; }
+    try { await p.waitForFunction(() => !document.getElementById('intro') && !document.documentElement.classList.contains('intro-on'), null, { timeout: 15000 }); }
+    catch (e) { fail(where, 'az intro 15 mp alatt sem tűnt el'); }
+    const vis = await p.evaluate(() => { const h = document.querySelector('h1'); return h ? h.getBoundingClientRect().height > 0 && getComputedStyle(h).visibility !== 'hidden' : true; });
+    if (!vis) fail(where, 'az intro után nem látszik a cím');
+    /* kihagyás: második betöltés ugyanabban a munkamenetben nem játssza le */
+    await p.reload({ waitUntil: 'load' });
+    if (await p.evaluate(() => document.documentElement.classList.contains('intro-on'))) fail(where, 'újratöltéskor megint lejátszódik (munkamenetenként egyszer kell)');
+    await c.close();
+  }
+}
+
+/* csökkentett mozgás: nincs intro, a címek a helyükön */
+async function checkReduced(file) {
+  const where = `${file} csökkentett mozgás`;
+  const c = await ctx({ reducedMotion: 'reduce' }, { lang: LANGS[0], skipIntro: false }); const p = await c.newPage(); watch(p, where);
+  await p.goto(`${url}/${file}`, { waitUntil: 'load' }); await p.waitForTimeout(500);
+  const r = await p.evaluate(() => ({
+    intro: document.documentElement.classList.contains('intro-on') && !!document.getElementById('intro') && getComputedStyle(document.getElementById('intro')).display !== 'none',
+    hidden: [...document.querySelectorAll('.ln__i')].filter(e => getComputedStyle(e).transform !== 'none').length
+  }));
+  if (r.intro) fail(where, 'az intro csökkentett mozgásnál is fut');
+  if (r.hidden) fail(where, `${r.hidden} címsor nincs a helyén`);
+  await c.close();
+}
+
+/* érintő: nincs egyedi kurzor, nincs Lenis */
+async function checkTouch(file) {
+  const where = `${file} érintő`;
+  const c = await ctx({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, { lang: LANGS[0] }); const p = await c.newPage(); watch(p, where);
+  await p.goto(`${url}/${file}`, { waitUntil: 'load' }); await p.waitForTimeout(500);
+  const r = await p.evaluate(() => ({ cur: !!document.querySelector('.kurzor'), lenis: !!(window.KIT && window.KIT.lenis) }));
+  if (r.cur) fail(where, 'érintőn is van egyedi kurzor');
+  if (r.lenis) fail(where, 'érintőn is fut a Lenis (natív görgetés kell)');
+  await c.close();
+}
+
+const t0 = Date.now();
+const safe = async (where, fn) => { try { await fn(); } catch (e) { fail(where, 'a teszt elakadt: ' + String(e.message).split('\n')[0].slice(0, 160)); } };
+for (const f of PAGES) for (const l of LANGS) for (const w of WIDTHS) await safe(`${f} ${l} ${w}px`, () => checkLayout(f, l, w));
+for (const f of PAGES) await safe(`${f} nyelvváltás`, () => checkLiveSwitch(f));
+if (PAGES.includes('index.html')) await safe('intro', checkIntro);
+for (const f of PAGES) { await safe(`${f} csökkentett mozgás`, () => checkReduced(f)); await safe(`${f} érintő`, () => checkTouch(f)); }
+{ // 404
+  const c = await ctx(); const p = await c.newPage();
+  const r = await p.goto(`${url}/nincs-ilyen-oldal`); if (r.status() !== 404) fail('404', `nem 404-et ad (${r.status()})`);
+  await c.close();
+}
+await browser.close(); srv.close();
+
+const uniq = [...new Set(fails)];
+const rep = { ido_mp: Math.round((Date.now() - t0) / 1000), oldalak: PAGES, nyelvek: LANGS, szelessegek: WIDTHS, hibak: uniq, figyelmeztetesek: warns };
+fs.mkdirSync(path.join(ROOT, 'teszt', 'eredmeny'), { recursive: true });
+fs.writeFileSync(path.join(ROOT, 'teszt', 'eredmeny', 'kapu.json'), JSON.stringify(rep, null, 2));
+console.log(`Minőségkapu (Playwright): ${PAGES.length} oldal × ${LANGS.length} nyelv × ${WIDTHS.length} szélesség, ${rep.ido_mp} mp`);
+warns.forEach(w => console.log('  ! ' + w));
+if (uniq.length) { console.log(`BUKOTT, ${uniq.length} hiba:`); uniq.slice(0, 60).forEach(f => console.log('  ✗ ' + f)); process.exit(1); }
+console.log('ÁTMENT ✓');

@@ -1,0 +1,17 @@
+{
+  "kategoriak": [
+    {
+      "nev": ["Kávé", "Kaffee", "Coffee"],
+      "tetelek": [
+        { "nev": ["Espresso", "Espresso", "Espresso"], "leiras": ["", "", ""], "ar": "690" },
+        { "nev": ["Cappuccino", "Cappuccino", "Cappuccino"], "leiras": ["tejjel vagy zabtejjel", "mit Milch oder Hafermilch", "with milk or oat milk"], "ar": "990" }
+      ]
+    },
+    {
+      "nev": ["Sütemény", "Kuchen", "Cakes"],
+      "tetelek": [
+        { "nev": ["Minta torta", "Beispieltorte", "Sample cake"], "leiras": ["szeletre", "pro Stück", "per slice"], "ar": "1290" }
+      ]
+    }
+  ]
+}
