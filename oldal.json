@@ -7,7 +7,11 @@
   "email_publikus": "",
   "netlify": "https://minta.netlify.app",
   "domain": "",
-  "nyelvek": ["hu", "de", "en"],
+  "nyelvek": [
+    "hu",
+    "de",
+    "en"
+  ],
   "uzemelteto": {
     "nev": "",
     "tipus": "egyeni",
@@ -25,7 +29,11 @@
     "decap_cms": false,
     "analitika": false
   },
-  "kulso_linkek": ["Google Térkép", "Facebook", "Instagram"],
+  "kulso_linkek": [
+    "Google Térkép",
+    "Facebook",
+    "Instagram"
+  ],
   "fotok": {
     "hu": "A fényképek a hely saját képei.",
     "de": "Die Fotos sind eigene Bilder des Lokals.",
@@ -36,13 +44,50 @@
     "de": "bis 30 Tage nach dem Tag der Reservierung",
     "en": "until 30 days after the day of the booking"
   },
-  "hatalyos": ["2026. november 15.", "15. November 2026", "15 November 2026"],
-  "nyitvatartas": [["", ""], ["12:00", "22:00"], ["12:00", "22:00"], ["12:00", "22:00"], ["12:00", "22:00"], ["12:00", "24:00"], ["12:00", "24:00"]],
+  "hatalyos": [
+    "2026. november 15.",
+    "15. November 2026",
+    "15 November 2026"
+  ],
+  "nyitvatartas": [
+    [
+      "",
+      ""
+    ],
+    [
+      "12:00",
+      "22:00"
+    ],
+    [
+      "12:00",
+      "22:00"
+    ],
+    [
+      "12:00",
+      "22:00"
+    ],
+    [
+      "12:00",
+      "22:00"
+    ],
+    [
+      "12:00",
+      "24:00"
+    ],
+    [
+      "12:00",
+      "24:00"
+    ]
+  ],
   "_nyitvatartas_megjegyzes": "vasárnap az első (JS getDay szerint), üres = zárva; éjfél után zárás: 25:30",
   "intro": {
-    "be": true,
+    "be": false,
     "sor1": "Sopron, Fő tér 1.",
-    "felirat": ["– Ide mindig visszajövünk.", "– Hierher kommen wir immer zurück.", "– We always come back here."]
+    "felirat": [
+      "– Ide mindig visszajövünk.",
+      "– Hierher kommen wir immer zurück.",
+      "– We always come back here."
+    ]
   },
   "tablazat_csv": ""
 }

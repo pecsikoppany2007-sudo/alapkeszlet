@@ -7,6 +7,7 @@
     es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
   }, { rootMargin: '0px 0px -16% 0px' }) : null;
   K.splitLines = function (root) {
+    K._lines = true;
     K.$$('.bl', root).forEach(function (h) {
       var src = h.hasAttribute('data-bl-src') ? h.getAttribute('data-bl-src') : h.textContent;
       var tx = src.replace(/\s+/g, ' ').trim();
@@ -21,8 +22,9 @@
   };
   /* nyelvváltáskor a data-i18n frissíti a szöveget: a forrást töröljük, hogy az új szöveg bontódjon */
   K.onLang(function () {
+    if (!K._lines) return;
     K.$$('.bl').forEach(function (h) { if (h.hasAttribute('data-i18n')) h.removeAttribute('data-bl-src'); });
     K.splitLines();
   });
-  K.onResize(function () { K.splitLines(); });
+  K.onResize(function () { if (K._lines) K.splitLines(); });
 })();

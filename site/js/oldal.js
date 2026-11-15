@@ -39,7 +39,7 @@ window.OLDAL = {
   ]
  ],
  "intro": {
-  "be": true,
+  "be": false,
   "sor1": "Sopron, Fő tér 1.",
   "felirat": [
    "– Ide mindig visszajövünk.",

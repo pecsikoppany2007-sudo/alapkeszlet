@@ -26,7 +26,9 @@ A legjobb oldalaink bevált, stílustól független részei egy helyen, plusz eg
 | `80-intro.js` | Darling v2 | film-intro: gépelt cím, mostani idő, filmfelirat, fény felkapcsol; munkamenetenként egyszer, kihagyható |
 | `90-etlap.js` | új | étlap `data/menu.json`-ból vagy Google-táblázatból |
 
-Bekapcsolás a `site/js/main.js`-ben (egy-egy sor). Amit nem kérsz, azt egyszerűen ne hívd meg.
+**Alapból csak a stílustól független részek futnak** (nyelv, nyitvatartás, étlap, mobil menü, térkép, jogi oldal).
+A hangulati elemek (görgetés, kurzor, címek beúszása, lámpák, intro) mind ki vannak kapcsolva: minden oldal egyedi, ezeket csak akkor kapcsold be
+(`site/js/main.js`, egy-egy sor), ha az adott hely történetéhez illenek, és a stílusválasztóban is ezt választottuk. A lámpa a Darlingé, máshova nem visszük át változatlanul.
 Régi oldalba is átvihető: a modul fájlja + a hozzá tartozó rész a `css/kit.css`-ből.
 
 ## Jogi oldal és élesítés

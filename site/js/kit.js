@@ -176,6 +176,7 @@
     es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
   }, { rootMargin: '0px 0px -16% 0px' }) : null;
   K.splitLines = function (root) {
+    K._lines = true;
     K.$$('.bl', root).forEach(function (h) {
       var src = h.hasAttribute('data-bl-src') ? h.getAttribute('data-bl-src') : h.textContent;
       var tx = src.replace(/\s+/g, ' ').trim();
@@ -190,10 +191,11 @@
   };
   /* nyelvváltáskor a data-i18n frissíti a szöveget: a forrást töröljük, hogy az új szöveg bontódjon */
   K.onLang(function () {
+    if (!K._lines) return;
     K.$$('.bl').forEach(function (h) { if (h.hasAttribute('data-i18n')) h.removeAttribute('data-bl-src'); });
     K.splitLines();
   });
-  K.onResize(function () { K.splitLines(); });
+  K.onResize(function () { if (K._lines) K.splitLines(); });
 })();
 
 /* Függőlámpák (Darling v2): a .lampas címek fölé lámpa kerül, és amikor a cím a képbe ér, vibrálva felkapcsol, fénykúppal.
@@ -206,6 +208,7 @@
     es.forEach(function (e) { if (!e.isIntersecting) return; io.unobserve(e.target); e.target.setAttribute('data-ego', ''); var l = e.target.querySelector('.lampa'); if (l) l.classList.add('is-lit'); });
   }, { rootMargin: '0px 0px -22% 0px' }) : null;
   K.hangLamps = function () {
+    K._lamps = true;
     K.$$('.lampas').forEach(function (h) {
       if (h.querySelector('.lampa')) return;
       h.insertAdjacentHTML('beforeend', HTML.replace('lampa"', 'lampa' + (h.hasAttribute('data-ego') || !io ? ' is-on' : '') + '"'));
@@ -215,7 +218,7 @@
   document.addEventListener('animationend', function (e) {
     if (e.animationName === 'lampOn' && e.target.classList.contains('lampa__kup')) e.target.parentNode.classList.add('is-on');
   });
-  K.onLang(function () { K.hangLamps(); });
+  K.onLang(function () { if (K._lamps) K.hangLamps(); });
 })();
 
 /* Nyitvatartás: táblázat + "most nyitva" sor budapesti idő szerint. OLDAL.nyitvatartas: 7 pár, vasárnappal kezdve; 25:30 = éjjel fél kettő. */

@@ -8,6 +8,7 @@
     es.forEach(function (e) { if (!e.isIntersecting) return; io.unobserve(e.target); e.target.setAttribute('data-ego', ''); var l = e.target.querySelector('.lampa'); if (l) l.classList.add('is-lit'); });
   }, { rootMargin: '0px 0px -22% 0px' }) : null;
   K.hangLamps = function () {
+    K._lamps = true;
     K.$$('.lampas').forEach(function (h) {
       if (h.querySelector('.lampa')) return;
       h.insertAdjacentHTML('beforeend', HTML.replace('lampa"', 'lampa' + (h.hasAttribute('data-ego') || !io ? ' is-on' : '') + '"'));
@@ -17,5 +18,5 @@
   document.addEventListener('animationend', function (e) {
     if (e.animationName === 'lampOn' && e.target.classList.contains('lampa__kup')) e.target.parentNode.classList.add('is-on');
   });
-  K.onLang(function () { K.hangLamps(); });
+  K.onLang(function () { if (K._lamps) K.hangLamps(); });
 })();
