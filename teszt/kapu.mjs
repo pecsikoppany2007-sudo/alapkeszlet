@@ -245,6 +245,24 @@ function checkAssets() {
   }
 }
 
+/* akadálymentesség (axe-core, WCAG 2.1 AA): súlyos és kritikus hiba bukik, közepes figyelmeztet. Minden nyelven, gépen és telefonon */
+const AXE = path.join(ROOT, 'node_modules', 'axe-core', 'axe.min.js');
+async function checkA11y(file, lang, w) {
+  const where = `${file} ${lang} ${w}px akadálymentesség`;
+  const c = await ctx({ viewport: { width: w, height: 800 }, ...(w < 800 ? { hasTouch: true, isMobile: true } : {}) }, { lang }); const p = await c.newPage(); watch(p, where);
+  await p.goto(`${url}/${file}`, { waitUntil: 'load' }); await p.waitForTimeout(600);
+  await p.addScriptTag({ path: AXE });
+  const res = await p.evaluate(async () => {
+    const r = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] });
+    return r.violations.map(v => ({ id: v.id, impact: v.impact, help: v.help, n: v.nodes.length, el: v.nodes.slice(0, 2).map(n => n.target.join(' ')).join(' | ') }));
+  });
+  for (const v of res) {
+    const msg = `${v.id} (${v.n}×): ${v.help} → ${v.el}`;
+    if (v.impact === 'serious' || v.impact === 'critical') fail(where, msg); else warn(file, 'akadálymentesség: ' + msg);
+  }
+  await c.close();
+}
+
 const t0 = Date.now();
 checkAssets();
 const safe = async (where, fn) => { try { await fn(); } catch (e) { fail(where, 'a teszt elakadt: ' + String(e.message).split('\n')[0].slice(0, 160)); } };
@@ -252,6 +270,7 @@ for (const f of PAGES) for (const l of LANGS) for (const w of WIDTHS) await safe
 for (const f of PAGES) await safe(`${f} nyelvváltás`, () => checkLiveSwitch(f));
 if (PAGES.includes('index.html')) await safe('intro', checkIntro);
 for (const f of PAGES) await safe(`${f} fej`, () => checkHead(f));
+for (const f of PAGES) for (const l of LANGS) for (const w of [1280, 375]) await safe(`${f} ${l} akadálymentesség`, () => checkA11y(f, l, w));
 for (const f of PAGES) { await safe(`${f} csökkentett mozgás`, () => checkReduced(f)); await safe(`${f} érintő`, () => checkTouch(f)); }
 { // 404
   const c = await ctx(); const p = await c.newPage();

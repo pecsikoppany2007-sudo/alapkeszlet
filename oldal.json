@@ -40,7 +40,8 @@
     "terkep_kattintasra": true,
     "google_tablazat_menu": false,
     "decap_cms": false,
-    "analitika": false
+    "analitika": false,
+    "beagyazas_kattintasra": false
   },
   "kulso_linkek": [
     "Google Térkép",
@@ -117,5 +118,14 @@
       "– We always come back here."
     ]
   },
-  "tablazat_csv": ""
+  "tablazat_csv": "",
+  "keszito": {
+    "szoveg": [
+      "Weboldal: kettő",
+      "Website: kettő",
+      "Website: kettő"
+    ],
+    "url": ""
+  },
+  "_keszito_megjegyzes": "lábléc-hivatkozás a stúdióra; üres url = nem jelenik meg"
 }

@@ -7,7 +7,8 @@ window.SZOVEG = {
     h1: 'Minta Kávézó', hsub: 'Café in Sopron, am Fő tér.',
     etlapH: 'Speisekarte', nyitvaH: 'Öffnungszeiten', elerH: 'Kontakt', cimK: 'Adresse', telK: 'Telefon', utvonal: 'Route planen',
     terkepP: 'Die Karte ist ein Dienst von Google, beim Laden kann Google Cookies setzen.', terkepGo: 'Karte laden',
-    ftImp: 'Impressum', ftPriv: 'Datenschutz', ftCook: 'Cookies'
+    ftImp: 'Impressum', ftPriv: 'Datenschutz', ftCook: 'Cookies', ftKeszito: 'Website: kettő',
+    urlapOk: 'Danke, wir haben Ihre Nachricht erhalten und antworten bald.', urlapHiba: 'Das hat nicht geklappt. Bitte rufen Sie uns an.'
   },
   en: {
     _title: 'Minta Kávézó · Sopron, Fő tér 1.', _vissza: 'See you on Fő tér',
@@ -15,6 +16,7 @@ window.SZOVEG = {
     h1: 'Minta Kávézó', hsub: 'A café in Sopron, on Fő tér.',
     etlapH: 'Menu', nyitvaH: 'Opening hours', elerH: 'Contact', cimK: 'Address', telK: 'Phone', utvonal: 'Get directions',
     terkepP: 'The map is a Google service, Google may set cookies when it loads.', terkepGo: 'Load the map',
-    ftImp: 'Legal notice', ftPriv: 'Privacy', ftCook: 'Cookies'
+    ftImp: 'Legal notice', ftPriv: 'Privacy', ftCook: 'Cookies', ftKeszito: 'Website: kettő',
+    urlapOk: 'Thank you, we got your message and will reply soon.', urlapHiba: 'That did not work. Please give us a call.'
   }
 };

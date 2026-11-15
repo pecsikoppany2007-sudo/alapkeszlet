@@ -137,6 +137,10 @@ for page in SITE.glob('*.html'):
     from urllib.parse import quote
     route = 'https://www.google.com/maps/dir/?api=1&amp;destination=' + quote(f"{nev}, {cfg.get('cim', '')}")
     s2 = re.sub(r'href="[^"]*"(\s+data-utvonal)', lambda mm: f'href="{route}"' + mm.group(1), s2)
+    k = cfg.get('keszito') or {}
+    kt = (k.get('szoveg') or ['Weboldal: kettő'])
+    credit = f'<a href="{esc(k["url"])}" rel="noopener" data-i18n="ftKeszito">{esc(kt[0])}</a>' if k.get('url') else ''
+    s2 = re.sub(r'(<!-- keszito -->).*?(<!-- /keszito -->)', lambda mm: mm.group(1) + credit + mm.group(2), s2, flags=re.S)
     s2 = re.sub(r'(<!-- fej:[^>]*-->\n).*?(<!-- /fej -->)', lambda mm: mm.group(1) + head_block(s2) + '\n' + mm.group(2), s2, flags=re.S)
     if s2 != s:
         page.write_text(s2)

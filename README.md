@@ -40,6 +40,16 @@ Régi oldalba is átvihető: a modul fájlja + a hozzá tartozó rész a `css/ki
 - **Útvonaltervezés link:** `<a href="#" data-utvonal>` → Google Térkép útvonal a hely nevére és címére.
 - **Ünnepnapi nyitvatartás:** `oldal.json` → `kivetelek`. A „most nyitva” sor és a Google is ezt használja, a táblázat alatt 3 héttel előre kiírja.
 
+- **Stúdió-hivatkozás a láblécben:** `oldal.json` → `keszito.url` (üresen nem jelenik meg).
+
+## Kész részletek és eszközök
+
+- `docs/minta-reszletek.html`: kapcsolati űrlap (Netlify Forms, spam-csapda, hozzájárulás, köszönő üzenet oldalváltás nélkül;
+  ingyen 100 beküldés/hó), YouTube/Instagram csak kattintásra (`data-beagyazas`, youtube-nocookie). A funkciót az `oldal.json`-ban is kapcsold be,
+  a jogi oldal magától kiegészül.
+- **Betű saját tárhelyre:** `npm run betu -- "Fraunces" 300,400 --dolt` → woff2 a `site/fonts/`-ba (latin + latin-ext, benne ő/ű), `site/css/betuk.css`,
+  licenc, és kiírja a preload sort. Google Fonts linket soha ne tegyél az oldalba (GDPR, a kapu megbuktatja).
+
 ## Képek
 
 `python3 eszkozok/kepek.py`: a `forras/kepek/` fotóiból 640/1280/1920 px AVIF + WebP + JPEG, és kész `<picture>` kód
@@ -66,6 +76,7 @@ Minden pushnál lefut, és pirosra vált, ha:
 - konzolhiba, JS-hiba, 404-es fájl van;
 - bármelyik oldal bármelyik nyelven 320, 375, 414, 768, 1024, 1280, 1440 vagy 1920 px-en vízszintesen görget;
 - egy cím nem fér ki, hiányzik egy fordítás, egy képnek nincs alt-ja vagy nem töltődik be, egy menülink célja nincs meg;
+- akadálymentességi hiba (axe-core, WCAG 2.1 AA: kontraszt, címkék, gombnevek; minden nyelven, mobilon és gépen);
 - láthatatlan réteg takar el egy linket (a régi `hidden` + `display:flex` hiba);
 - az oldal hozzájárulás nélkül külső szerverhez kapcsolódik (pl. Google Fonts, YouTube, térkép kattintás előtt: GDPR-hiba);
 - hiányzik vagy rossz hosszú a lap címe / leírása, nincs megosztási kép, hibásak a cégadatok, nem pontosan 1 db h1 van;
