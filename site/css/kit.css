@@ -5,6 +5,10 @@
   --kurzor:var(--kiemelo);--kurzor-feny:216,170,60;--lampa:255,214,140;
   --betu-cim:Georgia,'Times New Roman',serif;--betu-szoveg:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --fejlec:70px;--ease:cubic-bezier(.16,1,.3,1);
+  /* mozgás-tokenek (darkroom/Emil Kowalski szabályai alapján, MIT): be- és kilépés ease-out, mozgás a képernyőn ease-in-out, ease-in UI-n soha.
+     Időtartam: gombnyomás 100–160 ms, kis felugró 125–200, lenyíló 150–250, ablak/fiók 200–500; a ritka, nagy pillanat lehet hosszabb. */
+  --ease-out:cubic-bezier(.23,1,.32,1);--ease-in-out:cubic-bezier(.77,0,.175,1);--ease-drawer:cubic-bezier(.32,.72,0,1);
+  --t-nyomas:140ms;--t-kicsi:180ms;--t-lenyilo:220ms;--t-ablak:400ms;
   color-scheme:dark
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -13,6 +17,14 @@ body{margin:0;background:var(--hatter);color:var(--szoveg);font:400 1.0625rem/1.
 img,svg,video,canvas{display:block;max-width:100%;height:auto}
 a{color:inherit}
 button{font:inherit;color:inherit}
+/* gombnyomás visszajelzés (a tap-highlight helyett), és hover-mozgás csak valódi egérrel (érintőn a koppintás hamis hovert ad) */
+@media (prefers-reduced-motion:no-preference){
+  button,.gomb{transition:transform var(--t-nyomas) var(--ease-out)}
+  button:active,.gomb:active{transform:scale(.97)}
+}
+html{-webkit-tap-highlight-color:transparent}
+/* hosszú, képernyőn kívüli szakaszok rajzolása csak, ha odaérünk (gyorsabb első betöltés); a magasság becslését add meg szakaszonként */
+.lusta{content-visibility:auto;contain-intrinsic-size:auto 900px}
 /* a hidden attribútum mindig nyer (a láthatatlan teljes képernyős menü kattintás-blokkolás hibája ellen) */
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--kiemelo);outline-offset:3px}

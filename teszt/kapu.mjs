@@ -184,9 +184,25 @@ async function checkHead(file) {
       h1: [...document.querySelectorAll('h1')].filter(h => !h.closest('[hidden]')).length, ld, fonts,
       noSize: [...document.querySelectorAll('img')].filter(i => !(i.getAttribute('width') && i.getAttribute('height'))).map(i => i.getAttribute('src')).slice(0, 5),
       big: performance.getEntriesByType('resource').filter(e => e.initiatorType === 'img' && e.encodedBodySize > 450000).map(e => e.name.split('/').pop() + ' ' + Math.round(e.encodedBodySize / 1024) + ' KB'),
-      noindex: !!document.querySelector('meta[name="robots"][content*="noindex"]')
+      noindex: !!document.querySelector('meta[name="robots"][content*="noindex"]'),
+      /* oldal-költségvetés (darkroom szabályai): JS < 300 KB, CSS < 100 KB, betűk < 100 KB, az első képernyő képei < 500 KB */
+      budget: performance.getEntriesByType('resource').concat(performance.getEntriesByType('navigation')).reduce((a, e) => {
+        const n = e.name.split('?')[0], b = e.encodedBodySize || e.transferSize || 0;
+        const k = /\.m?js$/.test(n) ? 'js' : /\.css$/.test(n) ? 'css' : /\.(woff2?|ttf|otf)$/.test(n) ? 'font' : null;
+        if (k) a[k] += b; return a;
+      }, { js: 0, css: 0, font: 0 }),
+      foldImg: [...document.querySelectorAll('img')].filter(i => { const b = i.getBoundingClientRect(); return b.width && b.top < innerHeight && b.bottom > 0; })
+        .reduce((a, i) => { const e = performance.getEntriesByName(i.currentSrc || i.src)[0]; return a + (e ? e.encodedBodySize || e.transferSize || 0 : 0); }, 0),
+      /* az első képernyőn lévő kép nem lehet lusta (késik tőle a legnagyobb tartalom, LCP) */
+      lazyFold: [...document.querySelectorAll('img[loading="lazy"]')].filter(i => { const b = i.getBoundingClientRect(); return b.width && b.top < innerHeight && b.bottom > 0; }).map(i => i.getAttribute('src'))
     };
   });
+  const KB = n => Math.round(n / 1024);
+  if (r.budget.js > 300 * 1024) fail(where, `JS ${KB(r.budget.js)} KB (300 KB alatt kell)`);
+  if (r.budget.css > 100 * 1024) fail(where, `CSS ${KB(r.budget.css)} KB (100 KB alatt kell)`);
+  if (r.budget.font > 100 * 1024) warn(file, `betűk ${KB(r.budget.font)} KB (100 KB alatt jó: subset, woff2, kevesebb vastagság)`);
+  if (r.foldImg > 500 * 1024) warn(file, `az első képernyő képei ${KB(r.foldImg)} KB (500 KB alatt jó)`);
+  if (r.lazyFold.length) fail(where, 'az első képernyőn lusta (loading=lazy) kép van, késlelteti a nyitóképet: ' + r.lazyFold.join(', '));
   if (!r.title || r.title.length < 10 || r.title.length > 70) fail(where, `a lap címe ${r.title.length} karakter (10–70 legyen)`);
   if (!r.viewport) fail(where, 'nincs viewport meta');
   if (!r.lang) fail(where, 'nincs html lang');
@@ -218,7 +234,19 @@ async function checkHead(file) {
   await c.close();
 }
 
+/* fájlméret-őr (darkroom check-assets ötlete): kép 1 MB, videó 8 MB, ikon 40 KB fölött bukik */
+function checkAssets() {
+  const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+  for (const f of walk(path.join(ROOT, 'site'))) {
+    const rel = path.relative(path.join(ROOT, 'site'), f), size = fs.statSync(f).size, ext = path.extname(f).toLowerCase();
+    if (/(^|\/)(apple-touch-icon|favicon|icon)[^/]*\.(png|ico)$/.test(rel) && size > 40e3) fail('fájlok', `${rel}: ikon ${Math.round(size / 1024)} KB (40 KB alatt kell)`);
+    else if (['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'].includes(ext) && size > 1e6) fail('fájlok', `${rel}: ${Math.round(size / 1024)} KB kép (1 MB alatt kell, használd az eszkozok/kepek.py-t)`);
+    else if (['.mp4', '.webm', '.mov'].includes(ext) && size > 8e6) fail('fájlok', `${rel}: ${Math.round(size / 1e6)} MB videó (8 MB alatt kell)`);
+  }
+}
+
 const t0 = Date.now();
+checkAssets();
 const safe = async (where, fn) => { try { await fn(); } catch (e) { fail(where, 'a teszt elakadt: ' + String(e.message).split('\n')[0].slice(0, 160)); } };
 for (const f of PAGES) for (const l of LANGS) for (const w of WIDTHS) await safe(`${f} ${l} ${w}px`, () => checkLayout(f, l, w));
 for (const f of PAGES) await safe(`${f} nyelvváltás`, () => checkLiveSwitch(f));

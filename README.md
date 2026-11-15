@@ -45,6 +45,13 @@ Régi oldalba is átvihető: a modul fájlja + a hozzá tartozó rész a `css/ki
 `python3 eszkozok/kepek.py`: a `forras/kepek/` fotóiból 640/1280/1920 px AVIF + WebP + JPEG, és kész `<picture>` kód
 (`site/img/kepek.html`) width/height-tal, srcset-tel, lazy betöltéssel. A nyitóképnél a lazy helyett `fetchpriority="high"`.
 
+## Szabályok és források
+
+- `docs/minosegi-szabalyok.md`: az 5 pontos terv az első szakasz előtt, a sablonos oldal jelei, szöveg-, mozgás- és teljesítményszabályok
+  (a darkroom.engineering nyilvános csapatszabályaiból, MIT).
+- `docs/forrasok.md`: a díjnyertes stúdiók nyílt kódja, licenccel: mit szabad átvenni, miből csak tanulunk.
+- `THIRD-PARTY-NOTICES.md`: licencek.
+
 ## Jogi oldal és élesítés
 
 - `eszkozok/jogi.py`: impresszum + adatkezelési tájékoztató + sütik, HU/DE/EN, az `oldal.json` funkciói szerint
@@ -63,6 +70,7 @@ Minden pushnál lefut, és pirosra vált, ha:
 - az oldal hozzájárulás nélkül külső szerverhez kapcsolódik (pl. Google Fonts, YouTube, térkép kattintás előtt: GDPR-hiba);
 - hiányzik vagy rossz hosszú a lap címe / leírása, nincs megosztási kép, hibásak a cégadatok, nem pontosan 1 db h1 van;
 - egy képnek nincs width/height-ja (ugrál betöltéskor), egy betűnek nincs font-display-e;
+- az első képernyőn lusta (`loading=lazy`) kép van; JS 300 KB vagy CSS 100 KB fölött; egy kép 1 MB, videó 8 MB, ikon 40 KB fölött;
 - az élő nyelvváltás más szöveget ad, mint a friss betöltés;
 - az intro nem tűnik el 15 mp alatt, vagy újratöltéskor megint lejátszódik;
 - csökkentett mozgásnál fut az intro vagy elbújik egy cím; érintőn van egyedi kurzor vagy Lenis;
