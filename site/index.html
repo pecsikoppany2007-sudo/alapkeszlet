@@ -6,19 +6,31 @@
 <title>Minta Kávézó · Sopron, Fő tér 1.</title>
 <meta name="description" content="Kávézó Sopronban, a Fő téren. Nyitvatartás, étlap, elérhetőség.">
 <meta name="robots" content="noindex, nofollow">
+<!-- fej: a beallit.py írja az oldal.json-ból (ikonok, megosztási kép, Google-nek szóló cégadatok) -->
 <meta name="theme-color" content="#12110f">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta property="og:title" content="Minta Kávézó · Sopron">
-<meta property="og:description" content="Kávézó Sopronban, a Fő téren.">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Minta Kávézó">
+<meta property="og:title" content="Minta Kávézó · Sopron, Fő tér 1.">
+<meta property="og:description" content="Kávézó Sopronban, a Fő téren. Nyitvatartás, étlap, elérhetőség.">
+<meta property="og:image" content="https://minta.netlify.app/img/megosztas.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:locale" content="hu_HU">
+<meta property="og:locale:alternate" content="de_DE">
+<meta property="og:locale:alternate" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CafeOrCoffeeShop","name":"Minta Kávézó","url":"https://minta.netlify.app/","image":"https://minta.netlify.app/img/megosztas.jpg","address":{"@type":"PostalAddress","streetAddress":"Fő tér 1.","addressLocality":"Sopron","postalCode":"9400","addressCountry":"HU"},"telephone":"+3699000000","geo":{"@type":"GeoCoordinates","latitude":47.6849,"longitude":16.59},"priceRange":"$$","openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday"],"opens":"12:00","closes":"22:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Friday","Saturday"],"opens":"12:00","closes":"00:00"},{"@type":"OpeningHoursSpecification","validFrom":"2026-12-24","validThrough":"2026-12-24","opens":"10:00","closes":"14:00"},{"@type":"OpeningHoursSpecification","validFrom":"2026-12-25","validThrough":"2026-12-25","opens":"00:00","closes":"00:00"},{"@type":"OpeningHoursSpecification","validFrom":"2026-12-26","validThrough":"2026-12-26","opens":"00:00","closes":"00:00"}],"acceptsReservations":true,"hasMenu":"https://minta.netlify.app/#etlap"}</script>
+<!-- /fej -->
 <!-- korai döntések villanás nélkül: nyelv és intro. A kulcsok a beallit.py-ból jönnek (rovid). -->
 <script>
-(function(){var h=document.documentElement,r='minta',L=["hu", "de", "en"],l=null;
+(function(){var h=document.documentElement,r='minta',L=["hu", "de", "en"],I=0,l=null;
 try{l=localStorage.getItem(r+'-lang')}catch(e){}
 if(!l||L.indexOf(l)<0){var n=(navigator.languages||[navigator.language||'hu']).map(function(x){return String(x).slice(0,2)});l=n.filter(function(x){return L.indexOf(x)>-1})[0]||'en'}
 if(l!=='hu'){h.classList.add('lang-pending');setTimeout(function(){h.classList.remove('lang-pending')},3000)}
 var s=null;try{s=sessionStorage.getItem(r+'-intro')}catch(e){}
-if(!s&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!/[?&]nointro/.test(location.search))0})();
+if(I&&!s&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!/[?&]nointro/.test(location.search))h.classList.add('intro-on')})();
 </script>
 <link rel="stylesheet" href="css/kit.css">
 <link rel="stylesheet" href="css/style.css">
@@ -64,12 +76,13 @@ if(!s&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!/[?&]nointro/.t
 
   <section class="szakasz" id="nyitvatartas">
     <h2 class="bl" data-i18n="nyitvaH">Nyitvatartás</h2>
-    <div data-nyitvatartas><table><caption class="sr" data-i18n="nyitvaH">Nyitvatartás</caption><tbody></tbody></table></div>
+    <div data-nyitvatartas><table><caption class="sr" data-i18n="nyitvaH">Nyitvatartás</caption><tbody></tbody></table>
+    <ul class="kivetelek" data-kivetelek hidden></ul></div>
   </section>
 
   <section class="szakasz" id="elerhetoseg">
     <h2 class="bl" data-i18n="elerH">Elérhetőség</h2>
-    <p><span data-i18n="cimK">Cím</span>: 9400 Sopron, Fő tér 1.<br><span data-i18n="telK">Telefon</span>: <a href="tel:+3699000000">+36 99 000 000</a></p>
+    <p><span data-i18n="cimK">Cím</span>: 9400 Sopron, Fő tér 1.<br><span data-i18n="telK">Telefon</span>: <a href="tel:+3699000000">+36 99 000 000</a><br><a href="https://www.google.com/maps/dir/?api=1&amp;destination=Minta%20K%C3%A1v%C3%A9z%C3%B3%2C%209400%20Sopron%2C%20F%C5%91%20t%C3%A9r%201." data-utvonal rel="noopener" data-i18n="utvonal">Útvonaltervezés</a></p>
     <div data-terkep="https://www.google.com/maps?q=Sopron%2C%20F%C5%91%20t%C3%A9r%201.&amp;output=embed">
       <p><span data-i18n="terkepP">A térkép a Google szolgáltatása, betöltéskor a Google sütiket helyezhet el.</span><br>
       <button type="button" data-cim="Térkép" data-i18n="terkepGo">Térkép betöltése</button></p>

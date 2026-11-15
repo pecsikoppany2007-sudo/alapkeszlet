@@ -31,6 +31,20 @@ A hangulati elemek (görgetés, kurzor, címek beúszása, lámpák, intro) mind
 (`site/js/main.js`, egy-egy sor), ha az adott hely történetéhez illenek, és a stílusválasztóban is ezt választottuk. A lámpa a Darlingé, máshova nem visszük át változatlanul.
 Régi oldalba is átvihető: a modul fájlja + a hozzá tartozó rész a `css/kit.css`-ből.
 
+## Amit a beallit.py magától megcsinál (minden oldalon, stílustól függetlenül)
+
+- **Google-nek szóló cégadatok (JSON-LD):** típus, cím, telefon, koordináta, nyitvatartás, ünnepnapok, profilok, ár-kategória.
+  Ettől jelenhet meg a Google-ben a nyitvatartás és a térképes adat.
+- **Megosztási kép és ikonok:** og/twitter adatok (Messengeren, Facebookon szép előnézet), apple-touch-icon, webmanifest, téma szín.
+  Ha hiányzik a kép, helykitöltőt készít, és figyelmeztet, hogy cseréld valódira.
+- **Útvonaltervezés link:** `<a href="#" data-utvonal>` → Google Térkép útvonal a hely nevére és címére.
+- **Ünnepnapi nyitvatartás:** `oldal.json` → `kivetelek`. A „most nyitva” sor és a Google is ezt használja, a táblázat alatt 3 héttel előre kiírja.
+
+## Képek
+
+`python3 eszkozok/kepek.py`: a `forras/kepek/` fotóiból 640/1280/1920 px AVIF + WebP + JPEG, és kész `<picture>` kód
+(`site/img/kepek.html`) width/height-tal, srcset-tel, lazy betöltéssel. A nyitóképnél a lazy helyett `fetchpriority="high"`.
+
 ## Jogi oldal és élesítés
 
 - `eszkozok/jogi.py`: impresszum + adatkezelési tájékoztató + sütik, HU/DE/EN, az `oldal.json` funkciói szerint
@@ -46,6 +60,9 @@ Minden pushnál lefut, és pirosra vált, ha:
 - bármelyik oldal bármelyik nyelven 320, 375, 414, 768, 1024, 1280, 1440 vagy 1920 px-en vízszintesen görget;
 - egy cím nem fér ki, hiányzik egy fordítás, egy képnek nincs alt-ja vagy nem töltődik be, egy menülink célja nincs meg;
 - láthatatlan réteg takar el egy linket (a régi `hidden` + `display:flex` hiba);
+- az oldal hozzájárulás nélkül külső szerverhez kapcsolódik (pl. Google Fonts, YouTube, térkép kattintás előtt: GDPR-hiba);
+- hiányzik vagy rossz hosszú a lap címe / leírása, nincs megosztási kép, hibásak a cégadatok, nem pontosan 1 db h1 van;
+- egy képnek nincs width/height-ja (ugrál betöltéskor), egy betűnek nincs font-display-e;
 - az élő nyelvváltás más szöveget ad, mint a friss betöltés;
 - az intro nem tűnik el 15 mp alatt, vagy újratöltéskor megint lejátszódik;
 - csökkentett mozgásnál fut az intro vagy elbújik egy cím; érintőn van egyedi kurzor vagy Lenis;

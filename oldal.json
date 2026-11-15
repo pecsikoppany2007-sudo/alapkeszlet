@@ -3,6 +3,19 @@
   "nev": "Minta Kávézó",
   "rovid": "minta",
   "cim": "9400 Sopron, Fő tér 1.",
+  "schema_tipus": "CafeOrCoffeeShop",
+  "_schema_megjegyzes": "Google-nek: CafeOrCoffeeShop, Restaurant, BarOrPub, Winery, Bakery, LocalBusiness, HealthClub, Store...",
+  "koordinata": [
+    47.6849,
+    16.59
+  ],
+  "arkategoria": "$$",
+  "profilok": [
+    "https://www.facebook.com/PELDA",
+    "https://www.instagram.com/PELDA"
+  ],
+  "megosztas_kep": "img/megosztas.jpg",
+  "szin": "#12110f",
   "telefon": "+36 99 000 000",
   "email_publikus": "",
   "netlify": "https://minta.netlify.app",
@@ -79,6 +92,21 @@
       "24:00"
     ]
   ],
+  "kivetelek": {
+    "2026-12-24": [
+      "10:00",
+      "14:00"
+    ],
+    "2026-12-25": [
+      "",
+      ""
+    ],
+    "2026-12-26": [
+      "",
+      ""
+    ]
+  },
+  "_kivetelek_megjegyzes": "ünnepnapok és rendkívüli nyitvatartás: dátum -> [nyit, zár]; üres = zárva",
   "_nyitvatartas_megjegyzes": "vasárnap az első (JS getDay szerint), üres = zárva; éjfél után zárás: 25:30",
   "intro": {
     "be": false,

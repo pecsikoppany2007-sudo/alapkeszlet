@@ -31,7 +31,7 @@
     var n = Date.now(), y = new Date(n).getUTCFullYear();
     var s = Date.UTC(y, 2, lastSun(y, 2), 1), e = Date.UTC(y, 9, lastSun(y, 9), 1);
     var b = new Date(n + ((n >= s && n < e) ? 2 : 1) * 3600000);
-    return { d: b.getUTCDay(), m: b.getUTCHours() * 60 + b.getUTCMinutes() };
+    return { d: b.getUTCDay(), m: b.getUTCHours() * 60 + b.getUTCMinutes(), t: b.getTime() };
   };
   K.store = {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },

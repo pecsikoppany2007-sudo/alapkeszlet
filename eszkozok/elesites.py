@@ -40,6 +40,7 @@ for p in pages:
     s = s.replace('</title>\n', f'</title>\n<link rel="canonical" href="{url}">\n<meta property="og:url" content="{url}">\n', 1)
     p.write_text(s)
 
+subprocess.run([sys.executable, str(ROOT / 'eszkozok' / 'beallit.py')], check=True)  # megosztási kép, cégadatok az új domainnel
 subprocess.run([sys.executable, str(ROOT / 'eszkozok' / 'jogi.py')] + ([] if missing else ['--indexelt']), check=True)
 
 h = SITE / '_headers'

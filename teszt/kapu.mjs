@@ -2,7 +2,8 @@
 // Ellenőrzi minden oldalon, minden nyelven, 320–1920 px között:
 //  0 konzolhiba / JS-hiba / hibás kérés · nincs vízszintes görgetés · a címek kiférnek · nincs hiányzó fordítás
 //  · nincs láthatatlan réteg a linkek fölött · minden képnek van alt-ja és betöltődik · a menülinkek célja létezik
-//  · élő nyelvváltás = friss betöltés · az intro lefut és eltűnik · csökkentett mozgásnál minden látszik · érintőn nincs egyedi kurzor
+//  · élő nyelvváltás = friss betöltés · nincs külső kérés hozzájárulás nélkül · cím, leírás, megosztási kép, cégadatok (JSON-LD), 1 db h1
+//  · képeken width/height, betűkön font-display · az intro lefut és eltűnik · csökkentett mozgásnál minden látszik · érintőn nincs egyedi kurzor
 // Figyelmeztet (nem buktat): [kitöltendő] jelölés maradt, noindex van az oldalon.
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -25,7 +26,15 @@ const warn = (where, msg) => { if (!warns.includes(`${where}: ${msg}`)) warns.pu
 const { srv, url } = await serve();
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
+/* külső szerverek, amikhez hozzájárulás nélkül is szabad kapcsolódni (a jogi oldal leírja) */
+const ALLOW = new Set((cfg.kulso_engedett || []).concat(cfg.funkciok?.google_tablazat_menu ? ['docs.google.com', 'doc-0s-0s-sheets.googleusercontent.com'] : []));
+const allowed = h => ALLOW.has(h) || (cfg.funkciok?.google_tablazat_menu && /\.googleusercontent\.com$/.test(h));
 function watch(page, where) {
+  page.on('request', r => {
+    const u = r.url(); if (u.startsWith(url) || u.startsWith('data:') || u.startsWith('blob:')) return;
+    const h = new URL(u).hostname;
+    if (!allowed(h)) fail(where, 'külső kérés hozzájárulás nélkül (GDPR): ' + h + ' – töltsd le helyre, vagy csak kattintásra töltsd be');
+  });
   page.on('console', m => { if (m.type() === 'error') fail(where, 'konzolhiba: ' + m.text().slice(0, 200)); });
   page.on('pageerror', e => fail(where, 'JS-hiba: ' + String(e.message).slice(0, 200)));
   page.on('requestfailed', r => { if (r.url().startsWith(url) && !/aborted/i.test(r.failure()?.errorText || '')) fail(where, 'kérés elbukott: ' + r.url().replace(url, '')); });
@@ -158,11 +167,63 @@ async function checkTouch(file) {
   await c.close();
 }
 
+/* fej: cím, leírás, megosztási kép, Google-nek szóló cégadatok, egy h1, képméretek, betűk */
+async function checkHead(file) {
+  const where = `${file} fej`;
+  const c = await ctx({}, { lang: LANGS[0] }); const p = await c.newPage(); watch(p, where);
+  let bytes = 0;
+  p.on('response', async r => { try { if (r.url().startsWith(url)) bytes += (await r.body()).length; } catch (e) {} });
+  await p.goto(`${url}/${file}`, { waitUntil: 'load' }); await p.waitForTimeout(800);
+  const r = await p.evaluate(() => {
+    const m = n => document.querySelector(`meta[name="${n}"], meta[property="${n}"]`)?.getAttribute('content') || '';
+    const ld = [...document.querySelectorAll('script[type="application/ld+json"]')].map(s => { try { return JSON.parse(s.textContent); } catch (e) { return 'HIBÁS'; } });
+    const fonts = [];
+    for (const sh of document.styleSheets) { try { for (const ru of sh.cssRules) if (ru instanceof CSSFontFaceRule && !ru.style.getPropertyValue('font-display')) fonts.push(ru.style.getPropertyValue('font-family')); } catch (e) {} }
+    return {
+      title: document.title, desc: m('description'), ogimg: m('og:image'), viewport: m('viewport'), lang: document.documentElement.getAttribute('lang'),
+      h1: [...document.querySelectorAll('h1')].filter(h => !h.closest('[hidden]')).length, ld, fonts,
+      noSize: [...document.querySelectorAll('img')].filter(i => !(i.getAttribute('width') && i.getAttribute('height'))).map(i => i.getAttribute('src')).slice(0, 5),
+      big: performance.getEntriesByType('resource').filter(e => e.initiatorType === 'img' && e.encodedBodySize > 450000).map(e => e.name.split('/').pop() + ' ' + Math.round(e.encodedBodySize / 1024) + ' KB'),
+      noindex: !!document.querySelector('meta[name="robots"][content*="noindex"]')
+    };
+  });
+  if (!r.title || r.title.length < 10 || r.title.length > 70) fail(where, `a lap címe ${r.title.length} karakter (10–70 legyen)`);
+  if (!r.viewport) fail(where, 'nincs viewport meta');
+  if (!r.lang) fail(where, 'nincs html lang');
+  if (r.h1 !== 1) fail(where, `${r.h1} db h1 van (pontosan 1 kell)`);
+  if (r.fonts.length) fail(where, 'betű font-display nélkül (láthatatlan szöveg betöltéskor): ' + [...new Set(r.fonts)].join(', '));
+  if (r.noSize.length) fail(where, 'kép width/height nélkül (ugrál betöltéskor): ' + r.noSize.join(', '));
+  if (r.big.length) warn(file, 'nagy kép (450 KB fölött): ' + r.big.join(', '));
+  if (bytes > 3_000_000) warn(file, `az oldal első betöltése ${Math.round(bytes / 1e5) / 10} MB (3 MB alatt jó)`);
+  if (file === 'index.html' || !r.noindex) {
+    if (r.desc.length < 50 || r.desc.length > 165) fail(where, `a leírás (meta description) ${r.desc.length} karakter (50–160 legyen)`);
+    if (!r.ogimg) fail(where, 'nincs megosztási kép (og:image)');
+    else {
+      const local = path.join(ROOT, 'site', new URL(r.ogimg, url).pathname);
+      if (!fs.existsSync(local)) fail(where, 'a megosztási kép fájlja nincs meg: ' + new URL(r.ogimg, url).pathname);
+    }
+  }
+  if (file === 'index.html') {
+    const biz = r.ld.find(x => x && x.name);
+    if (r.ld.includes('HIBÁS')) fail(where, 'hibás JSON-LD (Google-nek szóló cégadatok)');
+    else if (!biz) fail(where, 'nincsenek Google-nek szóló cégadatok (JSON-LD): futtasd a beallit.py-t');
+    else {
+      if (!biz.address) fail(where, 'a cégadatokból hiányzik a cím');
+      if (!biz.openingHoursSpecification) warn(file, 'a cégadatokból hiányzik a nyitvatartás');
+      if (!biz.sameAs) warn(file, 'a cégadatokból hiányoznak a közösségi profilok (oldal.json "profilok")');
+    }
+    const ph = ['img/megosztas.jpg', 'apple-touch-icon.png'].filter(f => fs.existsSync(path.join(ROOT, 'site', f)) && fs.statSync(path.join(ROOT, 'site', f)).size < 40000);
+    if (ph.length) warn(file, 'helykitöltő kép lehet még (kicsi fájl): ' + ph.join(', '));
+  }
+  await c.close();
+}
+
 const t0 = Date.now();
 const safe = async (where, fn) => { try { await fn(); } catch (e) { fail(where, 'a teszt elakadt: ' + String(e.message).split('\n')[0].slice(0, 160)); } };
 for (const f of PAGES) for (const l of LANGS) for (const w of WIDTHS) await safe(`${f} ${l} ${w}px`, () => checkLayout(f, l, w));
 for (const f of PAGES) await safe(`${f} nyelvváltás`, () => checkLiveSwitch(f));
 if (PAGES.includes('index.html')) await safe('intro', checkIntro);
+for (const f of PAGES) await safe(`${f} fej`, () => checkHead(f));
 for (const f of PAGES) { await safe(`${f} csökkentett mozgás`, () => checkReduced(f)); await safe(`${f} érintő`, () => checkTouch(f)); }
 { // 404
   const c = await ctx(); const p = await c.newPage();
