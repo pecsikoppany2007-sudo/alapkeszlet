@@ -69,7 +69,7 @@ async function checkLayout(file, lang, w) {
       const b = e.getBoundingClientRect(); return b.right > innerWidth + 1 || [...ws].some(x => x.getBoundingClientRect().right > innerWidth + 1);
     }).map(e => e.textContent.trim().slice(0, 30)).slice(0, 3);
     out.noAlt = [...document.querySelectorAll('img')].filter(i => !i.hasAttribute('alt')).map(i => i.getAttribute('src')).slice(0, 5);
-    out.broken = [...document.querySelectorAll('img')].filter(i => i.complete && i.naturalWidth === 0 && i.loading !== 'lazy').map(i => i.getAttribute('src')).slice(0, 5);
+    out.broken = [...document.querySelectorAll('img')].filter(i => i.getAttribute('src') && i.complete && i.naturalWidth === 0 && i.loading !== 'lazy').map(i => i.getAttribute('src')).slice(0, 5);
     out.anchors = [...document.querySelectorAll('a[href^="#"]')].map(a => a.getAttribute('href')).filter(h => h.length > 1 && h !== '#top' && !document.getElementById(h.slice(1)));
     out.todo = (document.body.innerText.match(/kitöltendő/g) || []).length;
     out.noindex = !!document.querySelector('meta[name="robots"][content*="noindex"]');
@@ -111,10 +111,10 @@ async function checkLiveSwitch(file) {
     if (!(await btn.count())) { await c1.close(); continue; }
     try { await btn.click({ timeout: 3000 }); } catch (e) { fail(where, 'a nyelvgomb nem kattintható (valami eltakarja)'); await c1.close(); continue; }
     await p1.waitForTimeout(600);
-    const live = await p1.evaluate(() => document.body.innerText.replace(/\d{1,2}:\d{2}/g, '').replace(/\s+/g, ' ').trim());
+    const live = await p1.evaluate(() => document.body.innerText.replace(/\d+(?:[.,:]\d+)*/g, '#').replace(/\s+/g, ' ').trim()); // számlálók és órák mozognak, csak a szöveg számít
     const c2 = await ctx({}, { lang: l }); const p2 = await c2.newPage(); watch(p2, where);
     await p2.goto(`${url}/${file}`, { waitUntil: 'load' }); await p2.waitForTimeout(500);
-    const fresh = await p2.evaluate(() => document.body.innerText.replace(/\d{1,2}:\d{2}/g, '').replace(/\s+/g, ' ').trim());
+    const fresh = await p2.evaluate(() => document.body.innerText.replace(/\d+(?:[.,:]\d+)*/g, '#').replace(/\s+/g, ' ').trim());
     if (live !== fresh) {
       let i = 0; while (i < live.length && live[i] === fresh[i]) i++;
       fail(where, `más, mint friss betöltésnél: „…${live.slice(Math.max(0, i - 20), i + 40)}” ≠ „…${fresh.slice(Math.max(0, i - 20), i + 40)}”`);
@@ -131,13 +131,15 @@ async function checkIntro() {
     await p.goto(`${url}/index.html`, { waitUntil: 'load' });
     const had = await p.evaluate(() => document.documentElement.classList.contains('intro-on'));
     if (!had) { warn('index.html', 'nincs intro (vagy ki van kapcsolva)'); await c.close(); return; }
-    try { await p.waitForFunction(() => !document.getElementById('intro') && !document.documentElement.classList.contains('intro-on'), null, { timeout: 15000 }); }
+    /* két fajta intro: a kit fedőrétege (#intro, munkamenetenként egyszer) vagy a nyitókép saját beúszása (html.intro-done jelzi a végét) */
+    const overlay = await p.evaluate(() => !!document.getElementById('intro'));
+    try { await p.waitForFunction(() => document.documentElement.classList.contains('intro-done') || (!document.getElementById('intro') && !document.documentElement.classList.contains('intro-on')), null, { timeout: 15000 }); }
     catch (e) { fail(where, 'az intro 15 mp alatt sem tűnt el'); }
     const vis = await p.evaluate(() => { const h = document.querySelector('h1'); return h ? h.getBoundingClientRect().height > 0 && getComputedStyle(h).visibility !== 'hidden' : true; });
     if (!vis) fail(where, 'az intro után nem látszik a cím');
     /* kihagyás: második betöltés ugyanabban a munkamenetben nem játssza le */
     await p.reload({ waitUntil: 'load' });
-    if (await p.evaluate(() => document.documentElement.classList.contains('intro-on'))) fail(where, 'újratöltéskor megint lejátszódik (munkamenetenként egyszer kell)');
+    if (overlay && await p.evaluate(() => document.documentElement.classList.contains('intro-on'))) fail(where, 'újratöltéskor megint lejátszódik (munkamenetenként egyszer kell)');
     await c.close();
   }
 }
@@ -182,7 +184,7 @@ async function checkHead(file) {
     return {
       title: document.title, desc: m('description'), ogimg: m('og:image'), viewport: m('viewport'), lang: document.documentElement.getAttribute('lang'),
       h1: [...document.querySelectorAll('h1')].filter(h => !h.closest('[hidden]')).length, ld, fonts,
-      noSize: [...document.querySelectorAll('img')].filter(i => !(i.getAttribute('width') && i.getAttribute('height'))).map(i => i.getAttribute('src')).slice(0, 5),
+      noSize: [...document.querySelectorAll('img')].filter(i => i.getAttribute('src') && !(i.getAttribute('width') && i.getAttribute('height'))).map(i => i.getAttribute('src')).slice(0, 5),
       big: performance.getEntriesByType('resource').filter(e => e.initiatorType === 'img' && e.encodedBodySize > 450000).map(e => e.name.split('/').pop() + ' ' + Math.round(e.encodedBodySize / 1024) + ' KB'),
       noindex: !!document.querySelector('meta[name="robots"][content*="noindex"]'),
       /* oldal-költségvetés (darkroom szabályai): JS < 300 KB, CSS < 100 KB, betűk < 100 KB, az első képernyő képei < 500 KB */
@@ -220,7 +222,7 @@ async function checkHead(file) {
     }
   }
   if (file === 'index.html') {
-    const biz = r.ld.find(x => x && x.name);
+    const biz = r.ld.find(x => x && x.name && x.address) || r.ld.find(x => x && x.name && ![].concat(x['@type']).includes('WebSite'));
     if (r.ld.includes('HIBÁS')) fail(where, 'hibás JSON-LD (Google-nek szóló cégadatok)');
     else if (!biz) fail(where, 'nincsenek Google-nek szóló cégadatok (JSON-LD): futtasd a beallit.py-t');
     else {
