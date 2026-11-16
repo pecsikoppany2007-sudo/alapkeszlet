@@ -64,7 +64,7 @@ async function checkLayout(file, lang, w) {
     out.wide = out.overflow > 0 ? [...document.querySelectorAll('body *')].filter(e => { const b = e.getBoundingClientRect(); return b.width > W + 1 && b.right > W + 1 && getComputedStyle(e).position !== 'fixed'; }).slice(0, 3).map(e => e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.split(' ')[0] : '')) : [];
     out.lang = de.lang;
     out.emptyI18n = [...document.querySelectorAll('[data-i18n]')].filter(e => !e.closest('[hidden]') && !e.textContent.trim()).map(e => e.getAttribute('data-i18n')).slice(0, 5);
-    out.cut = [...document.querySelectorAll('h1, h2, h3, .ln__i')].filter(e => e.offsetParent && !e.closest('[hidden]')).filter(e => {
+    out.cut = [...document.querySelectorAll('h1, h2, h3, .ln__i')].filter(e => e.offsetParent && !e.closest('[hidden]')).filter(e => { const rb = e.getBoundingClientRect(); return rb.width > 2 && rb.height > 2; /* képernyőolvasónak rejtett (.sr) cím nem számít */ }).filter(e => {
       const ws = e.querySelectorAll('.w'); if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== 'visible') return true;
       const b = e.getBoundingClientRect(); return b.right > innerWidth + 1 || [...ws].some(x => x.getBoundingClientRect().right > innerWidth + 1);
     }).map(e => e.textContent.trim().slice(0, 30)).slice(0, 3);

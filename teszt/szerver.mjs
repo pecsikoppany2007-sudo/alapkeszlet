@@ -2,6 +2,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'site');
@@ -20,8 +21,9 @@ export function serve(port = 0) {
       else if (fs.existsSync(path.join(f, 'index.html'))) f = path.join(f, 'index.html');
       else { f = path.join(ROOT, '404.html'); code = 404; }
     }
-    res.writeHead(code, { 'Content-Type': TYPES[path.extname(f).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-    fs.createReadStream(f).pipe(res);
+    const ext = path.extname(f).toLowerCase(), gz = /gzip/.test(req.headers['accept-encoding'] || '') && ['.html', '.css', '.js', '.svg', '.json', '.xml', '.webmanifest', '.txt'].includes(ext);
+    res.writeHead(code, { 'Content-Type': TYPES[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache', ...(gz ? { 'Content-Encoding': 'gzip' } : {}) });
+    gz ? fs.createReadStream(f).pipe(zlib.createGzip()).pipe(res) : fs.createReadStream(f).pipe(res);
   });
   return new Promise(r => srv.listen(port, '127.0.0.1', () => r({ srv, url: `http://127.0.0.1:${srv.address().port}` })));
 }
